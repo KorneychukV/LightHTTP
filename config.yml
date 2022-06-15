@@ -1,0 +1,7 @@
+LightHTTPParameters:
+  host: "localhost"
+  port: 8080
+  response-timeout-ms: 11
+  https: false
+CustomParameters:
+  test: "test"
