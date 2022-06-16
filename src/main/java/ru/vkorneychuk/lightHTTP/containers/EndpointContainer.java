@@ -15,13 +15,13 @@ public class EndpointContainer {
         return instance;
     }
 
-    private Map<String, Method> endpointsMap = new HashMap<>();
+    private Map<String, EndpointMetaData> endpointsMap = new HashMap<>();
 
-    public void addMethod(String path, Method method){
-        endpointsMap.put(path, method);
+    public void addEndpoint(String path, EndpointMetaData endpointMetaData){
+        endpointsMap.put(path, endpointMetaData);
     }
 
-    public Method getMethod(String path){
+    public EndpointMetaData getEndpoint(String path){
         return endpointsMap.get(path);
     }
 }

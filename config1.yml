@@ -1,7 +1,7 @@
 LightHTTPParameters:
-  host: "localhost"
+  default-api-path: "/api"
   port: 8080
-  response-timeout-ms: 11
+  response_timeout_ms: 11
   https: false
 CustomParameters:
   test: "test"

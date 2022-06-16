@@ -2,7 +2,6 @@ package ru.vkorneychuk.lightHTTP.handlers;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import lombok.SneakyThrows;
 import ru.vkorneychuk.lightHTTP.handlers.methodHandlers.PostHandler;
 
 import java.io.IOException;
@@ -13,6 +12,7 @@ public class RequestHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
 
         String requestMethod = exchange.getRequestMethod();
+        exchange.getRequestURI();
 
         switch (requestMethod) {
             case "POST" -> {
