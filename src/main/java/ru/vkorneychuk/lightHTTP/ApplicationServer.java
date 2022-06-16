@@ -15,7 +15,6 @@ public class ApplicationServer {
 
     private HttpServer server;
     private final ConfigContainer serverConfig;
-    private EndpointContainer endpointContainer;
 
     public ApplicationServer(Map<ServerArgsNames, Object> args){
         
@@ -23,7 +22,6 @@ public class ApplicationServer {
         this.serverConfig.readConfig(args);
 
         new ControllersHandler().getAllControllers();
-        this.endpointContainer = EndpointContainer.getInstance();
 
         start();
         this.setContext();

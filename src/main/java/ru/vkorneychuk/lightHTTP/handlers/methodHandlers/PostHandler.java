@@ -1,15 +1,24 @@
 package ru.vkorneychuk.lightHTTP.handlers.methodHandlers;
 
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.sun.net.httpserver.HttpExchange;
+import ru.vkorneychuk.lightHTTP.annotations.RequestBody;
 import ru.vkorneychuk.lightHTTP.containers.ConfigContainer;
+import ru.vkorneychuk.lightHTTP.containers.EndpointArgument;
 import ru.vkorneychuk.lightHTTP.containers.EndpointContainer;
+import ru.vkorneychuk.lightHTTP.containers.EndpointMetaData;
 import ru.vkorneychuk.lightHTTP.exceptions.ManyBodyExpected;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 public class PostHandler extends RequestMethodHandler implements RequestMethod {
 
@@ -17,8 +26,6 @@ public class PostHandler extends RequestMethodHandler implements RequestMethod {
     private final EndpointContainer endpointContainer = EndpointContainer.getInstance();
     private final String currentURI;
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private Method currentMethod;
-    private Class<?> currentMethodType;
 
     public PostHandler(HttpExchange exchange){
         ConfigContainer configContainer = ConfigContainer.getInstance();
@@ -29,14 +36,23 @@ public class PostHandler extends RequestMethodHandler implements RequestMethod {
     @Override
     public void run() {
 
-        this.currentMethod = getEndpointMethod();
-        this.currentMethodType = this.currentMethod.getDeclaringClass();
+        EndpointMetaData currentEndpoint = getEndpointMetaData();
+        Class<?> currentEndpointType = currentEndpoint.getMethod().getDeclaringClass();
 
-        Object body = this.extractRequestBody(exchange.getResponseBody());
+        List<Object> arguments = new ArrayList<>();
+
+        currentEndpoint.getArguments().forEach(argument -> {
+           if (argument.getAnnotation() == RequestBody.class){
+               arguments.add(this.extractRequestBody(exchange.getResponseBody(), argument.getType()));
+           } else {
+               arguments.add(null);
+           }
+        });
 
         try {
             // Arguments order is important
-            this.currentMethod.invoke(this.currentMethodType.getDeclaredConstructor().newInstance(), body);
+            currentEndpoint.getMethod()
+                    .invoke(currentEndpointType.getDeclaredConstructor().newInstance(), arguments.toArray());
         } catch (IllegalAccessException | InvocationTargetException | InstantiationException | NoSuchMethodException e) {
             System.err.printf("Calling method error: %s", e);
         }
@@ -53,43 +69,26 @@ public class PostHandler extends RequestMethodHandler implements RequestMethod {
     }
 
     @Override
-    public Object extractRequestBody(OutputStream requestBodyStream) {
-        Class<?> requestBodyType;
-        try {
-            requestBodyType = super.getRequestBodyType(this.currentMethod);
-        } catch (ManyBodyExpected e) {
-            System.err.println(e.getMessage());
-            throw new RuntimeException(e);
-        }
+    public EndpointMetaData getEndpointMetaData() {
+        return endpointContainer.getEndpoint(this.currentURI);
+    }
 
-        if (requestBodyType == null){
-            return null;
-        }
+    @Override
+    public Object extractRequestBody(OutputStream requestBodyStream, Class<?> argumentType) {
 
         Object body;
         try {
-            System.out.println(exchange.getRequestBody());
-            body = objectMapper.readValue(exchange.getRequestBody(), requestBodyType);
-            System.out.println(requestBodyType);
+            body = objectMapper.readValue(exchange.getRequestBody(), argumentType);
             return body;
-        } catch (IOException e) {
+        } catch (InvalidFormatException e) {
             System.err.println("Parse error.");
-            e.printStackTrace();
+            throw new RuntimeException(e);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
     public void extractGetParameters() {
-    }
-
-    @Override
-    public void getMethodParameters(Method method) {
-
-    }
-
-    @Override
-    public Method getEndpointMethod() {
-        return endpointContainer.getEndpoint(this.currentURI);
     }
 }
