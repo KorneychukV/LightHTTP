@@ -1,10 +1,7 @@
 package ru.vkorneychuk.lightHTTP.handlers;
 
 import org.reflections.Reflections;
-import ru.vkorneychuk.lightHTTP.annotations.Controller;
-import ru.vkorneychuk.lightHTTP.annotations.GetParameter;
-import ru.vkorneychuk.lightHTTP.annotations.PostMethod;
-import ru.vkorneychuk.lightHTTP.annotations.RequestBody;
+import ru.vkorneychuk.lightHTTP.annotations.*;
 import ru.vkorneychuk.lightHTTP.containers.EndpointArgument;
 import ru.vkorneychuk.lightHTTP.containers.EndpointContainer;
 import ru.vkorneychuk.lightHTTP.containers.EndpointMetaData;
@@ -101,7 +98,7 @@ public class ControllersHandler {
 
         if (annotation != null){
             endpointArgument.setAnnotation(annotation.annotationType());
-            endpointArgument.setRequestParameterName(getRequestParameterName(annotation));
+            endpointArgument.setRequestParameterName(getRequestParameterName(annotation, parameter.getName()));
         }
 
         endpointArgument.setArgumentName(parameter.getName());
@@ -110,9 +107,10 @@ public class ControllersHandler {
     }
 
     private Annotation getArgumentAnnotation(Parameter argument) throws ManyArgumentAnnotationsException {
-        Class<?>[] requiredAnnotations = new Class<?>[2];
+        Class<?>[] requiredAnnotations = new Class<?>[3];
         requiredAnnotations[0] = GetParameter.class;
         requiredAnnotations[1] = RequestBody.class;
+        requiredAnnotations[2] = RequestHeader.class;
 
         List<Annotation> annotations = Arrays.stream(argument.getAnnotations())
                 .filter(annotation -> isAnnotationPresent(requiredAnnotations, annotation.annotationType())).toList();
@@ -129,7 +127,7 @@ public class ControllersHandler {
         return Arrays.asList(annotations).contains(requiredAnnotation);
     }
 
-    public String getRequestParameterName(Annotation annotation) {
+    public String getRequestParameterName(Annotation annotation, String parameterName) {
 
         String requestParameterName;
 
@@ -137,11 +135,13 @@ public class ControllersHandler {
             requestParameterName = ((GetParameter) annotation).name();
         } else if (annotation.annotationType() == RequestBody.class){
             requestParameterName = ((RequestBody) annotation).name();
+        } else if (annotation.annotationType() == RequestHeader.class){
+            requestParameterName = ((RequestHeader) annotation).name();
         } else {
             return null;
         }
 
-        return (requestParameterName.equals("")) ? null : requestParameterName;
+        return (requestParameterName.equals("")) ? parameterName : requestParameterName;
 
     }
 
