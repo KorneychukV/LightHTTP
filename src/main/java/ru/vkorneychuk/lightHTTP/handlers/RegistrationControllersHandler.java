@@ -1,7 +1,14 @@
 package ru.vkorneychuk.lightHTTP.handlers;
 
 import org.reflections.Reflections;
-import ru.vkorneychuk.lightHTTP.annotations.*;
+import ru.vkorneychuk.lightHTTP.annotations.arguments.GetParameter;
+import ru.vkorneychuk.lightHTTP.annotations.arguments.RequestBody;
+import ru.vkorneychuk.lightHTTP.annotations.arguments.RequestHeader;
+import ru.vkorneychuk.lightHTTP.annotations.controllers.Controller;
+import ru.vkorneychuk.lightHTTP.annotations.methods.DeleteMethod;
+import ru.vkorneychuk.lightHTTP.annotations.methods.GetMethod;
+import ru.vkorneychuk.lightHTTP.annotations.methods.PostMethod;
+import ru.vkorneychuk.lightHTTP.annotations.methods.PutMethod;
 import ru.vkorneychuk.lightHTTP.containers.EndpointArgument;
 import ru.vkorneychuk.lightHTTP.containers.EndpointContainer;
 import ru.vkorneychuk.lightHTTP.containers.EndpointMetaData;
@@ -13,11 +20,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 
-public class ControllersHandler {
+public class RegistrationControllersHandler {
 
-    public ControllersHandler(){}
+    public RegistrationControllersHandler(){}
 
-    public void getAllControllers(){
+    public void registrateControllers(){
         Set<Class<?>> controllers =  getControllerClasses();
         registrationEndpoints(controllers);
     }
@@ -31,6 +38,9 @@ public class ControllersHandler {
         for(Class<?> controller: controllers){
             String controllerPath = controller.getAnnotation(Controller.class).path();
             registerPostMethods(controller, endpointContainer, controllerPath);
+            registerGetMethods(controller, endpointContainer, controllerPath);
+            registerPutMethods(controller, endpointContainer, controllerPath);
+            registerDeleteMethods(controller, endpointContainer, controllerPath);
         }
     }
 
@@ -39,24 +49,84 @@ public class ControllersHandler {
 
         for (Method postMethod: postMethods){
             String endpointPath = postMethod.getAnnotation(PostMethod.class).path();
-            EndpointMetaData endpointMetaData = new EndpointMetaData();
 
-            endpointMetaData.setEndpointPath(endpointPath);
-            endpointMetaData.setMethod(postMethod);
-
-            List<EndpointArgument> endpointArguments = getEndpointArguments(postMethod);
-            endpointMetaData.setArguments(endpointArguments);
-
-            endpointMetaData.setResponseType(postMethod.getReturnType());
-
-            endpointContainer.addEndpoint(controllerPath.concat(endpointPath), endpointMetaData);
+            endpointContainer.addEndpoint(controllerPath.concat(endpointPath),
+                    extractEndpointMetadata(postMethod, endpointPath, "POST"));
         }
+    }
+
+    private void registerGetMethods(Class<?> controller, EndpointContainer endpointContainer, String controllerPath){
+        List<Method> getMethods = getGetEndpoints(controller);
+
+        for (Method getMethod: getMethods){
+            String endpointPath = getMethod.getAnnotation(GetMethod.class).path();
+
+            endpointContainer.addEndpoint(controllerPath.concat(endpointPath),
+                    extractEndpointMetadata(getMethod, endpointPath, "GET"));
+
+        }
+    }
+
+    private void registerPutMethods(Class<?> controller, EndpointContainer endpointContainer, String controllerPath){
+        List<Method> putMethods = getPutEndpoints(controller);
+
+        for (Method putMethod: putMethods){
+            String endpointPath = putMethod.getAnnotation(PutMethod.class).path();
+
+            endpointContainer.addEndpoint(controllerPath.concat(endpointPath),
+                    extractEndpointMetadata(putMethod, endpointPath, "PUT"));
+
+        }
+    }
+
+    private void registerDeleteMethods(Class<?> controller, EndpointContainer endpointContainer, String controllerPath){
+        List<Method> deleteMethods = getDeleteEndpoints(controller);
+
+        for (Method deleteMethod: deleteMethods){
+            String endpointPath = deleteMethod.getAnnotation(DeleteMethod.class).path();
+
+            endpointContainer.addEndpoint(controllerPath.concat(endpointPath),
+                    extractEndpointMetadata(deleteMethod, endpointPath, "DELETE"));
+
+        }
+    }
+
+    private EndpointMetaData extractEndpointMetadata(Method method, String endpointPath, String requestMethod){
+        EndpointMetaData endpointMetaData = new EndpointMetaData();
+        endpointMetaData.setEndpointPath(endpointPath);
+        endpointMetaData.setMethod(method);
+        endpointMetaData.setRequestMethod(requestMethod);
+
+        List<EndpointArgument> endpointArguments = getEndpointArguments(method);
+        endpointMetaData.setArguments(endpointArguments);
+
+        endpointMetaData.setResponseType(method.getReturnType());
+
+        return endpointMetaData;
     }
 
     private List<Method> getPostEndpoints(Class<?> controller){
         return Arrays.stream(controller.getMethods())
                 .filter(method -> Arrays.stream(method.getAnnotations())
                         .anyMatch(annotation -> annotation instanceof PostMethod)).toList();
+    }
+
+    private List<Method> getGetEndpoints(Class<?> controller){
+        return Arrays.stream(controller.getMethods())
+                .filter(method -> Arrays.stream(method.getAnnotations())
+                        .anyMatch(annotation -> annotation instanceof GetMethod)).toList();
+    }
+
+    private List<Method> getPutEndpoints(Class<?> controller){
+        return Arrays.stream(controller.getMethods())
+                .filter(method -> Arrays.stream(method.getAnnotations())
+                        .anyMatch(annotation -> annotation instanceof PutMethod)).toList();
+    }
+
+    private List<Method> getDeleteEndpoints(Class<?> controller){
+        return Arrays.stream(controller.getMethods())
+                .filter(method -> Arrays.stream(method.getAnnotations())
+                        .anyMatch(annotation -> annotation instanceof DeleteMethod)).toList();
     }
 
     private List<EndpointArgument> getEndpointArguments(Method method){
@@ -83,18 +153,14 @@ public class ControllersHandler {
             }
         }
 
-        if (requestBodyCount > 1) throw new RuntimeException("Many request body annotations");
+        int MAX_REQUEST_BODY_COUNT = 1;
+        if (requestBodyCount > MAX_REQUEST_BODY_COUNT) throw new ManyBodyExpected();
     }
 
     private EndpointArgument getEndpointArgument(Parameter parameter){
         EndpointArgument endpointArgument = new EndpointArgument();
         Annotation annotation;
-        try {
-            annotation = getArgumentAnnotation(parameter);
-        } catch (ManyArgumentAnnotationsException e) {
-            System.err.println(e.getMessage());
-            throw new RuntimeException(e);
-        }
+        annotation = getArgumentAnnotation(parameter);
 
         if (annotation != null){
             endpointArgument.setAnnotation(annotation.annotationType());
@@ -106,7 +172,7 @@ public class ControllersHandler {
         return endpointArgument;
     }
 
-    private Annotation getArgumentAnnotation(Parameter argument) throws ManyArgumentAnnotationsException {
+    private Annotation getArgumentAnnotation(Parameter argument){
         Class<?>[] requiredAnnotations = new Class<?>[3];
         requiredAnnotations[0] = GetParameter.class;
         requiredAnnotations[1] = RequestBody.class;
@@ -129,7 +195,7 @@ public class ControllersHandler {
 
     public String getRequestParameterName(Annotation annotation, String parameterName) {
 
-        String requestParameterName;
+        String requestParameterName = parameterName;
 
         if (annotation.annotationType() == GetParameter.class){
             requestParameterName = ((GetParameter) annotation).name();
@@ -138,26 +204,12 @@ public class ControllersHandler {
         } else if (annotation.annotationType() == RequestHeader.class){
             requestParameterName = ((RequestHeader) annotation).name();
         } else {
-            return null;
+            return requestParameterName;
         }
 
         return (requestParameterName.equals("")) ? parameterName : requestParameterName;
 
     }
 
-//    public Class<?> getRequestBodyType(Method method) throws ManyBodyExpected {
-//        Parameter[] parameters = method.getParameters();
-//        List<Class<?>> types = new ArrayList<>();
-//        Arrays.stream(parameters)
-//                .filter(parameter -> isAnnotationPresent(parameter.getAnnotations(), RequestBody.class))
-//                .forEach(parameter -> types.add(parameter.getType()));
-//        if (types.size() > 1){
-//            throw new ManyBodyExpected();
-//        } else if (types.size() == 0){
-//            return null;
-//        } else {
-//            return types.get(0);
-//        }
-//    }
 
 }

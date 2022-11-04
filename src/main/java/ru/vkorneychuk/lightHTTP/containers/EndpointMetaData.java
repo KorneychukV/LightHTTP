@@ -11,6 +11,7 @@ import java.util.List;
 public class EndpointMetaData {
 
     String endpointPath;
+    String requestMethod;
     Method method;
     List<EndpointArgument> arguments;
     Class<?> responseType;

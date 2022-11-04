@@ -3,9 +3,12 @@ package ru.vkorneychuk.lightHTTP.containers;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.yaml.snakeyaml.Yaml;
 import ru.vkorneychuk.lightHTTP.enums.DefaultParametersNames;
 import ru.vkorneychuk.lightHTTP.enums.ServerArgsNames;
+import ru.vkorneychuk.lightHTTP.exceptions.BadConfigurationFile;
+import ru.vkorneychuk.lightHTTP.exceptions.NotFoundRequiredParameter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -16,6 +19,7 @@ import java.util.Map;
 
 @Getter
 @Setter
+@Slf4j
 public class ConfigContainer {
 
     @Getter(AccessLevel.NONE)
@@ -44,7 +48,7 @@ public class ConfigContainer {
             assert (object instanceof HashMap);
             return (HashMap<String, Object>) object;
         } catch (AssertionError e) {
-            System.err.println("Bad parameter.");
+            log.error("Ошибка чтения параметра.");
             e.printStackTrace();
             return null;
         }
@@ -69,11 +73,9 @@ public class ConfigContainer {
 
     public void saveDefaultParameters(){
         Map<String, Object> serverParameters = safeObjectMapConvert(configData.get("LightHTTPParameters"));
-        try {
-            assert serverParameters != null;
-        } catch (AssertionError e){
-            System.out.println("LightHTTPParameters must not be empty.");
-            System.exit(1);
+        // TODO заполнять необходимые параметры дефолтными значениями
+        if (serverParameters == null){
+            throw new NotFoundRequiredParameter();
         }
 
         this.port = (int) serverParameters.getOrDefault(DefaultParametersNames.PORT.getName(), this.port);
@@ -92,7 +94,7 @@ public class ConfigContainer {
         try {
             configData = parseConfig(serverConfig.configFilePath);
         } catch (InterruptedException | FileNotFoundException e) {
-            System.err.println("Ошибка чтения файла.");
+            throw new BadConfigurationFile();
         }
 
         this.configData = configData;

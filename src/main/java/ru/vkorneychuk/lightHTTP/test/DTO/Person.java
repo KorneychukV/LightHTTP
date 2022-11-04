@@ -4,7 +4,9 @@ import lombok.*;
 
 import java.io.Serializable;
 
-@Data
+@Getter
+@Setter
+@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 // TODO Class must be serializable

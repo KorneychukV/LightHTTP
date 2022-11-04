@@ -16,5 +16,4 @@ public class HTTPResponse {
     Object responseBody = null;
     Headers headers = new Headers();
     HTTPStatus status = HTTPStatus.OK;
-
 }

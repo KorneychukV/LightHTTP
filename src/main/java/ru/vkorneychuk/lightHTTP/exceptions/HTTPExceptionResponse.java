@@ -5,7 +5,7 @@ import ru.vkorneychuk.lightHTTP.enums.HTTPStatus;
 
 import java.sql.Timestamp;
 
-public class HTTPExceptionResponse extends Exception{
+public class HTTPExceptionResponse extends Exception {
 
     public HTTPStatus status;
 

@@ -1,4 +1,4 @@
-package ru.vkorneychuk.lightHTTP.annotations;
+package ru.vkorneychuk.lightHTTP.annotations.arguments;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.PARAMETER)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface GetParameter {
+public @interface RequestBody{
 
     public String name() default "";
 

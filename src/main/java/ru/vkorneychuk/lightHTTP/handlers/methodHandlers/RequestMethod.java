@@ -11,19 +11,17 @@ import java.util.List;
 
 public interface RequestMethod extends Runnable {
 
-    void applyEndpointMethod() throws HTTPExceptionResponse;
+    Object applyEndpointMethod() throws HTTPExceptionResponse;
 
     List<Object> fillArguments(EndpointMetaData currentEndpoint) throws HTTPExceptionResponse;
 
     Object extractRequestBody(OutputStream requestBodyStream, Class<?> argumentType) throws HTTPExceptionResponse;
 
-    void extractGetParameters();
+    void extractGetParameters() throws HTTPExceptionResponse;
 
     Object extractRequestHeaders(Headers headers, Class<?> headerType, String headerName) throws HTTPExceptionResponse;
 
-    EndpointMetaData getEndpointMetaData();
-
-    void processHTTPException(HTTPExceptionResponse e);
+    EndpointMetaData getEndpointMetaData() throws HTTPExceptionResponse;
 
     Object callMethod(EndpointMetaData currentEndpoint, List<Object> arguments) throws HTTPExceptionResponse;
 

@@ -1,4 +1,4 @@
-package ru.vkorneychuk.lightHTTP.annotations;
+package ru.vkorneychuk.lightHTTP.annotations.controllers;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
